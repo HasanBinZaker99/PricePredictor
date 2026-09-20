@@ -1,21 +1,18 @@
 import gradio as gr
 
+# Gradion is a python package that allows you to create web interface without manually writting.
 
-def test_project():
-    return "Hello"
+def predict_price(description):
+    return f"Product: {description}\nPredicted price: $899"
+# f means formatted string that allows you to insert variables inside text.
+demo = gr.Interface(
+    fn = predict_price,
+    inputs = gr.Textbox(
+        label = "Product Description",
+        placeholder="Enter product description.."
+    ),
+    outputs=gr.Textbox(label="Prediction"),
+    title = "AI product price predictor"
+)
 
-
-with gr.Blocks(title="PricePredictor") as demo:
-
-
-    button = gr.Button("Click Me ")
-    output = gr.Textbox(label="Output")
-
-    button.click(
-        fn=test_project,
-        outputs=output
-    )
-
-
-if __name__ == "__main__":
-    demo.launch()
+demo.launch()
