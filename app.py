@@ -9,6 +9,7 @@ from rag_engine import RAGPricePredictor
 load_dotenv()
 
 rag = RAGPricePredictor()
+# rag._add_sample_products()
 
 def format_similar_products(products):
     lines = []
@@ -27,15 +28,33 @@ def format_similar_products(products):
 # Gradion is a python package that allows you to create web interface without manually writting.
 
 def predict_price(description,mode):
+    #raise RuntimeError(description,"User Description")
     if not description or not description.strip():
         return "Please enter a product description."
-
     local_price, similar_products = rag.estimate_price_locally(description.strip())
-
-
+    #raise RuntimeError(local_price,similar_products)
     retrieved_text = format_similar_products(similar_products)
+    #raise RuntimeError(retrieved_text)
 # f means formatted string that allows you to insert variables inside text.
 
+# MODE 1:
+    if mode == "RAG only (begineer)":
+        result = (
+            f"Estimated price: ${local_price:.2f}"
+        )
+        return result,retrieved_text
+    if mode == "RAG + Frontier LLM":
+        try:
+            from frontier_agent import predict_with_frontier_llm
+
+            frontier_price = predict_with_frontier_llm(description.strip(),similar_products)
+          
+            return frontier_price,retrieved_text
+        except Exception as error:
+            return (
+                f"Reason: {error}"
+            )
+                                                                               
 with gr.Blocks() as demo:
 
     description = gr.Textbox(
@@ -46,7 +65,7 @@ with gr.Blocks() as demo:
 
     mode = gr.Radio(
         choices= [
-            "RAG only (beginner)",
+            "RAG only (begineer)",
             "RAG + Frontier LLM",
             "Begineer Ensemble"
         ],
