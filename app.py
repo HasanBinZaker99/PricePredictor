@@ -3,13 +3,30 @@ from pathlib import Path
 
 import gradio as gr
 from dotenv import load_dotenv
-from rag_engine import RAGPricePredictor
+from deals import Deal
+from sample_deals import SAMPLE_DEALS
 
 # Read variables from .env if the file exists
 load_dotenv()
 
-rag = RAGPricePredictor()
-# rag._add_sample_products()
+rag = None
+
+def get_rag():
+    global rag
+    if rag is None:
+        from rag_engine import RAGPricePredictor 
+        rag = RAGPricePredictor()
+
+    return rag
+
+def load_sample_deals():
+    rows = []
+    for item in SAMPLE_DEALS:
+        # Dictionary unpacking (**item): see Notes/app.py.md, Topic 1.
+        deal = Deal(**item)
+        rows.append([deal.product_description, deal.price,deal.url])
+    status = f"Loaded {len(rows)} sample deals. These are examples, not live offers."
+    return status, rows
 
 def format_similar_products(products):
     lines = []
@@ -30,8 +47,16 @@ def format_similar_products(products):
 def predict_price(description,mode):
     #raise RuntimeError(description,"User Description")
     if not description or not description.strip():
-        return "Please enter a product description."
-    local_price, similar_products = rag.estimate_price_locally(description.strip())
+        return "Please enter a product description.", ""
+
+    if mode == "Begineer Ensemble":
+        return "This mode is not implemented in your uploaded project yet.",""
+    if mode not in ("RAG only (begineer)","RAG + Frontier LLM"):
+        return "Please select a supported prediction mode.",""
+    try:   
+        local_price, similar_products = get_rag.estimate_price_locally(description.strip())
+    except Exception as error:
+        return f"Price prediction could not run: {error}",""    
     #raise RuntimeError(local_price,similar_products)
     retrieved_text = format_similar_products(similar_products)
     #raise RuntimeError(retrieved_text)
@@ -49,10 +74,10 @@ def predict_price(description,mode):
 
             frontier_price = predict_with_frontier_llm(description.strip(),similar_products)
           
-            return frontier_price,retrieved_text
+            return f"Estimated price: ${frontier_price:.2f}",retrieved_text
         except Exception as error:
             return (
-                f"Reason: {error}"
+                f"Reason: {error}", retrieved_text
             )
                                                                                
 with gr.Blocks() as demo:
@@ -87,5 +112,25 @@ with gr.Blocks() as demo:
         inputs = [description,mode],
         outputs= [prediction, similar_products]
     )
+    with gr.Tab("Sample Deals"):
+        load_button = gr.Button("Load Sample Deals", variant="primary")
+        deal_status = gr.Textbox(label="Status", interactive=False)
+        deals_table = gr.DataFrame(
+            headers=["Product description", "Sample price (USD)","Example URL"],
+            datatype= ["str","number","str"],
+            value=[],
+            # Interactive controls whether users can edit the table directly in your app.
+            # interactive = true means users can view and edit the table's cells, false means cannot.
+            interactive=False,
+            # wrap means long text automatically continues onto the next line inside the same table cell.
+            wrap=True,    
+        )
+        load_button.click( 
+            fn = load_sample_deals,
+            inputs=[],
+            outputs=[deal_status,deals_table]
+        )
+
+
 
 demo.launch()

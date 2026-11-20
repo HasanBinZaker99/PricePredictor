@@ -14,7 +14,7 @@ def _extract_number(text):
     #raise RuntimeError("DEBUG STOP: stopped after cleaned and match")
 
 def predict_with_frontier_llm(description, similar_products):
-    print(description,similar_products)
+    # print(description,similar_products)
     if not os.getenv("OPENAI_API_KEY"):
         raise RuntimeError(
             "OPENAI_API_KEY is missing. Use 'RAG only' mode first or add your API  key to a .env file."
