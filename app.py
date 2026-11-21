@@ -28,6 +28,22 @@ def load_sample_deals():
     status = f"Loaded {len(rows)} sample deals. These are examples, not live offers."
     return status, rows
 
+def load_live_deals():
+    try:
+        from rss_deals import fetch_rss_deals
+        deals, warnings = fetch_rss_deals()
+        rows = [
+            [deal["source"], deal["title"], deal["summary"],deal["url"]]
+            for deal in deals 
+        ]
+        status = f"Loaded {len(rows)} Live RSS entries. Prices have not been extracted yet."
+        if warnings:
+            status += "\n" + "\n".join(warnings)
+        return status,rows
+    except Exception as error:
+        return f"Could not load live RSS entries: {error}",[]
+
+
 def format_similar_products(products):
     lines = []
     for number, item in enumerate(products, start = 1):
@@ -130,7 +146,21 @@ with gr.Blocks() as demo:
             inputs=[],
             outputs=[deal_status,deals_table]
         )
-
+    with gr.Tab("Live RSS"):
+        live_button = gr.Button("load live RSS Deals",variant="primary")
+        live_status = gr.Textbox(label="RSS status",lines = 3, interactive= False)
+        live_table = gr.DataFrame( 
+            headers=["Source","Product title","RSS summary","Deal URL"],
+            datatype= ["str","str","str","str"],
+            value=[],
+            interactive=False,
+            wrap= True,
+        )
+        live_button.click(
+            fn = load_live_deals,
+            inputs=[],
+            outputs=[live_status, live_table],
+        )
 
 
 demo.launch()
